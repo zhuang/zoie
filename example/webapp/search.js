@@ -5,6 +5,12 @@ function handler(errorString, exception)
 
 DWREngine.setErrorHandler(handler);
 
+function onEnter(event)
+{
+  if (event.keyCode == 13)
+    doSearch();
+} 
+
 // doSearch method
 function doSearch()
 {

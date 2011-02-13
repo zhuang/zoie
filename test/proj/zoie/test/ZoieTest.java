@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.WhitespaceAnalyzer;
@@ -49,6 +50,8 @@ import proj.zoie.impl.indexing.MemoryStreamDataProvider;
 import proj.zoie.impl.indexing.ZoieSystem;
 import proj.zoie.impl.indexing.internal.IndexSignature;
 import proj.zoie.test.data.TestData;
+import proj.zoie.test.data.CarData;
+import proj.zoie.test.data.TestCarData;
 import proj.zoie.test.mock.MockDataLoader;
 
 
@@ -342,6 +345,101 @@ public class ZoieTest extends ZoieTestCase
         try {
           Thread.sleep(30);
         } catch (InterruptedException e) {
+          e.printStackTrace();
+        }	
+      }
+
+      assertEquals("maybe race condition in disk flush", Arrays.toString(expected), Arrays.toString(results));
+    }
+    catch(IOException ioe)
+    {
+      throw new ZoieException(ioe.getMessage());
+    }
+    finally
+    {
+      memoryProvider.stop();
+      idxSystem.shutdown();
+      deleteDirectory(idxDir);
+    }	
+  }
+
+  public void testCarData() throws ZoieException
+  {
+    File idxDir = getIdxDir();
+    DefaultZoieVersionFactory zoieVersionFactory = new DefaultZoieVersionFactory();
+    ZoieSystem<IndexReader, CarData, DefaultZoieVersion> idxSystem = createCarZoie(idxDir, zoieVersionFactory);
+ 
+    idxSystem.start();
+    
+    MemoryStreamDataProvider<CarData, DefaultZoieVersion> memoryProvider=new MemoryStreamDataProvider<CarData, DefaultZoieVersion>();
+    memoryProvider.setMaxEventsPerMinute(Long.MAX_VALUE);
+    memoryProvider.setDataConsumer(idxSystem);
+    memoryProvider.start();
+    
+    File dataFile = getDataFile();
+    try
+    {
+      TestCarData testCarData = new TestCarData(dataFile);
+      int count = testCarData.getData().size();
+      List<DataEvent<CarData, DefaultZoieVersion>> list = new ArrayList<DataEvent<CarData, DefaultZoieVersion>>(count);
+      
+      DefaultZoieVersion zvt = null;
+      Vector<CarData> data = testCarData.getData();
+      for (int i = 0; i < count; i ++)
+      {
+        zvt = new DefaultZoieVersion();
+        zvt.setVersionId(i);
+        
+        list.add(new DataEvent<CarData, DefaultZoieVersion>(data.get(i), zvt));
+      }
+      memoryProvider.addEvents(list);
+      idxSystem.syncWthVersion(300 * 1000, zvt);
+
+      int repeat = 3;
+      int idx = 0;
+      int[] results = new int[repeat];
+      int[] expected = new int[repeat];
+      Arrays.fill(expected, count);
+
+      Term t = new Term("_ID", "_UID");
+      Query query = new TermQuery(t);
+
+      Searcher searcher = null;
+      MultiReader reader = null;
+      List<ZoieIndexReader<IndexReader>> readers = null;
+      for (int i = 0; i < repeat; i ++)
+      {
+        try
+        {
+          readers = idxSystem.getIndexReaders();
+          reader = new MultiReader(readers.toArray(new IndexReader[readers.size()]),false);
+
+          searcher=new IndexSearcher(reader);
+
+          TopDocs hits = searcher.search(query, count);
+          results[idx ++] = hits.totalHits;
+        }
+        finally
+        {
+          try{
+            if (searcher != null)
+            {
+              searcher.close();
+              searcher = null;
+              reader.close();
+              reader = null;
+            }
+          }
+          finally
+          {
+            idxSystem.returnIndexReaders(readers);
+          }
+        }	
+        try 
+        {
+          Thread.sleep(30);
+        } catch (InterruptedException e) 
+        {
           e.printStackTrace();
         }	
       }

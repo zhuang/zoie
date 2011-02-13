@@ -2,6 +2,7 @@
 	<property name="zoie.root" location="." />
 	<property name="src" value="java" />
 	<property name="conf.dir" location="conf" />
+	<property name="test.data.file" location="test/data/dataout.txt" />
 	<property name="perf.dir" location="perf" />
 
 	<property name="test" value="test" />
@@ -224,6 +225,7 @@
 		<junit printsummary="yes" showoutput="yes">
       <sysproperty key="log.home" value="${logs}" />
       <sysproperty key="conf.dir" value="${conf.dir}" />
+      <sysproperty key="test.data.file" value="${test.data.file}" />
 			<sysproperty key="log4j.configuration" value="${log4j.configuration}" />
 			<sysproperty key="tests.to.run" value="${tests.to.run}" />
       <jvmarg value="-server" />
@@ -233,7 +235,7 @@
       <jvmarg value="-Djava.compiler=NONE" />
       <jvmarg value="-Xdebug" />
       <jvmarg value="-Xnoagent" />
-      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=7777,server=y,suspend=n" />
+      <jvmarg value="-Xrunjdwp:transport=dt_socket,address=7777,server=y,suspend=y" />
       <!-- -->
 
 		  <!-- classpath must include all jar dependencies and classes -->

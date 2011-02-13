@@ -19,6 +19,8 @@ import proj.zoie.api.DefaultZoieVersion;
 import proj.zoie.api.impl.InRangeDocIDMapperFactory;
 import proj.zoie.api.indexing.IndexReaderDecorator;
 import proj.zoie.impl.indexing.ZoieSystem;
+import proj.zoie.test.data.CarData;
+import proj.zoie.test.data.TestCarDataInterpreter;
 import proj.zoie.test.data.TestDataInterpreter;
 import proj.zoie.test.data.TestInRangeDataInterpreter;
 import junit.framework.TestCase;
@@ -117,6 +119,19 @@ public class ZoieTestCase extends TestCase
     }
     return tempFile;
   }
+  
+  protected static File getDataFile()
+  {
+    File tempFile = new File(System.getProperty("test.data.file"));
+    if (tempFile.exists())
+    {
+      return tempFile;
+    }
+    else
+    {
+      return null;
+    }
+  }
 
   protected static File getTmpDir()
   {
@@ -183,7 +198,26 @@ public class ZoieTestCase extends TestCase
     ZoieSystem<IndexReader,String,DefaultZoieVersion> idxSystem=new ZoieSystem<IndexReader, String,DefaultZoieVersion>(idxDir,new TestInRangeDataInterpreter(20,null),
         new TestIndexReaderDecorator(),docidMapperFactory,null,null,50,2000,realtime,zoieVersionFactory);
     return idxSystem;
+  }
+  
+  protected static ZoieSystem<IndexReader,CarData,DefaultZoieVersion> createCarZoie(File idxDir, ZoieVersionFactory<DefaultZoieVersion> zoieVersionFactory)
+  {
+	  ZoieSystem<IndexReader,CarData,DefaultZoieVersion> idxSystem =
+		  new ZoieSystem<IndexReader, CarData, DefaultZoieVersion>
+    		(idxDir,
+    		new TestCarDataInterpreter(20),
+    		new TestIndexReaderDecorator(),
+    		null,
+    		null,
+    		null,
+    		50,
+    		2000,
+    		true,
+    		zoieVersionFactory);
+
+	  return idxSystem;
   } 
+  
   protected static boolean deleteDirectory(File path) {
     if( path.exists() ) {
       File[] files = path.listFiles();
